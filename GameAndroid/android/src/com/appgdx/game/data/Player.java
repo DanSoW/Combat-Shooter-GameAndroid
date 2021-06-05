@@ -150,7 +150,6 @@ public class Player {
             return;
         if(((_plRect.y + _plRect.getHeight() + value) > _maxY) || (this._currentCountJump <= 0)){
             _jumpUp = false;
-            _jumpDown = true;
             this._currentCountJump = this._countJump;
             return;
         }

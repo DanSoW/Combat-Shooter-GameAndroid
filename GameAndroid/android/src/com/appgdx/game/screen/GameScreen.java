@@ -173,7 +173,7 @@ public class GameScreen implements Screen {
 
         //rainMusic.play();
 
-        Thread threadPause = new Thread(){
+        /*Thread threadPause = new Thread(){
             @Override
             public void run(){
                 while(running){
@@ -190,23 +190,17 @@ public class GameScreen implements Screen {
             }
         };
 
-        threadPause.start();
+        threadPause.start();*/
 
         threadMove = new Thread(){
             @Override
             public void run(){
-                //функция потока, реализующая логику перемещения по пространству
+                //функция потока, реализующая логику перемещения объектов по пространству
                 while(running){
                     if(_pauseFlag)
                         continue;
                     if((_player == null) || (_player.isDispose()))
                         break;
-
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
 
                     if((_player.getRectangle().overlaps(_door.rect)) || (_player.getHp() <= 0)){
                         running = false;
@@ -221,27 +215,26 @@ public class GameScreen implements Screen {
                         _chestLow = null;
                     }
 
-                    float sizeCount = 0.5f;
-
                     if(_player.getDirectionMove()){
                         if(collisionEnemy(_player.getRectangle())){
                             _player.setHp(_player.getHp() - 20);
                             _player.setDirectionMove(false);
-                            if(collisionPlatforms(_player.getRectangle(), sizeCount, true) < 0){
+                            if(!collisionPlatforms(_player.getRectangle(), true)){
                                 _player.moveLeft();
                                 _player.moveLeft();
                             }
-                        }else if(collisionPlatforms(_player.getRectangle(), sizeCount, true) < 0)
+                        }else if(!collisionPlatformsRight(_player.getRectangle())){
                             _player.moveRight();
+                        }
                     }else{
                         if(collisionEnemy(_player.getRectangle())){
                             _player.setHp(_player.getHp() - 20);
                             _player.setDirectionMove(true);
-                            if(collisionPlatforms(_player.getRectangle(), sizeCount, true) < 0){
+                            if(!collisionPlatforms(_player.getRectangle(), true)){
                                 _player.moveRight();
                                 _player.moveRight();
                             }
-                        }else if(collisionPlatforms(_player.getRectangle(), sizeCount, true) < 0){
+                        }else if(!collisionPlatformsLeft(_player.getRectangle())){
                             _player.moveLeft();
                         }
                     }
@@ -260,12 +253,17 @@ public class GameScreen implements Screen {
                     if((_bullet != null) && (_bullet.getActive())){
                         _bullet.move();
                     }
+
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         };
 
         threadMove.start(); //запуск потока, который обрабатывает движение игрока
-        //raindrops = new Array<Rectangle>();
     }
 
     /*private void spawnRaindrop(){
@@ -291,24 +289,42 @@ public class GameScreen implements Screen {
         return false;
     }
 
+    private boolean collisionPlatformsUp(Rectangle rect){
+        if((_platforms == null) || (_platforms.size == 0))
+            return false;
+
+        for(int i = 0; i < _platforms.size; i++){
+            if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
+                    && (rect.y < _platforms.get(i).rect.y)
+                    && (_platforms.get(i).rect.overlaps(_player.getRectangle()))
+                    && (
+                    ((rect.x > _platforms.get(i).rect.x) && ((rect.x + rect.width) < (_platforms.get(i).rect.x + _platforms.get(i).rect.width)))
+                            || ((rect.x < _platforms.get(i).rect.x) && ((rect.x + rect.width) > (_platforms.get(i).rect.x)))
+                            || ((rect.x > _platforms.get(i).rect.x) && ((rect.x + rect.width) > (_platforms.get(i).rect.x + _platforms.get(i).rect.width))))
+            ){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private boolean collisionPlatformsRight(Rectangle rect){
         if((_platforms == null) || (_platforms.size == 0))
             return false;
 
         for(int i = 0; i < _platforms.size; i++){
-            if((_platforms.get(i) != null)
-            && ((rect.y + rect.height) > _platforms.get(i).rect.y)
-            && (rect.y < (_platforms.get(i).rect.y + _platforms.get(i).rect.height))
-            && (rect.x < _platforms.get(i).rect.x) && ((rect.x + rect.width) >= _platforms.get(i).rect.x)){
+            if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
+                    && (rect.x < _platforms.get(i).rect.x)
+                    && ((rect.x + rect.width) >= _platforms.get(i).rect.x)
+                    && (
+                            ((rect.y >= _platforms.get(i).rect.y) && ((rect.y + rect.height) <= (_platforms.get(i).rect.y + _platforms.get(i).rect.height)))
+                            || ((rect.y < _platforms.get(i).rect.y) && ((rect.y + rect.height) >= (_platforms.get(i).rect.y)))
+                            || ((rect.y >= _platforms.get(i).rect.y) && (rect.y < (_platforms.get(i).rect.y + _platforms.get(i).rect.height - 10))
+                                    && ((rect.y + rect.height) > (_platforms.get(i).rect.y + _platforms.get(i).rect.height))))
+            ){
                 return true;
             }
-            /*if((_platforms.get(i) != null)
-            && (((_platforms.get(i).rect.y <= rect.y) && (_platforms.get(i).rect.y + _platforms.get(i).rect.height >= rect.y))
-            || ((_platforms.get(i).rect.y <= (rect.y + rect.height)) && (_platforms.get(i).rect.y + _platforms.get(i).rect.height >= (rect.y + rect.height)))
-            || ((_platforms.get(i).rect.y >= rect.y) && ((_platforms.get(i).rect.y + _platforms.get(i).rect.height) <= (rect.y + rect.height))))
-            && (_platforms.get(i).rect.x <= (rect.x + rect.width)) && ((_platforms.get(i).rect.x + _platforms.get(i).rect.width) >= (rect.x + rect.width))){
-                return true;
-            }*/
         }
 
         return false;
@@ -319,92 +335,83 @@ public class GameScreen implements Screen {
             return false;
 
         for(int i = 0; i < _platforms.size; i++){
-            if((_platforms.get(i) != null)
-                    && ((rect.y + rect.height) > _platforms.get(i).rect.y)
-                    && (rect.y < (_platforms.get(i).rect.y + _platforms.get(i).rect.height))
+            if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
                     && (rect.x <= (_platforms.get(i).rect.x + _platforms.get(i).rect.width))
-                    && (rect.x > _platforms.get(i).rect.x)){
+                    && ((rect.x + rect.width) > (_platforms.get(i).rect.x + _platforms.get(i).rect.width))
+                    && (
+                    ((rect.y >= _platforms.get(i).rect.y) && ((rect.y + rect.height) <= (_platforms.get(i).rect.y + _platforms.get(i).rect.height)))
+                            || ((rect.y < _platforms.get(i).rect.y) && ((rect.y + rect.height) >= (_platforms.get(i).rect.y)))
+                            || ((rect.y >= _platforms.get(i).rect.y) && (rect.y < (_platforms.get(i).rect.y + _platforms.get(i).rect.height - 10))
+                            && ((rect.y + rect.height) > (_platforms.get(i).rect.y + _platforms.get(i).rect.height))))
+            ){
                 return true;
             }
-            /*
-            if((_platforms.get(i) != null)
-                    && (((_platforms.get(i).rect.y <= rect.y) && (_platforms.get(i).rect.y + _platforms.get(i).rect.height >= rect.y))
-                    || ((_platforms.get(i).rect.y <= (rect.y + rect.height)) && (_platforms.get(i).rect.y + _platforms.get(i).rect.height >= (rect.y + rect.height)))
-                    || ((_platforms.get(i).rect.y >= rect.y) && ((_platforms.get(i).rect.y + _platforms.get(i).rect.height) <= (rect.y + rect.height))))
-                    && ((_platforms.get(i).rect.x + _platforms.get(i).rect.width) >= rect.x) && (_platforms.get(i).rect.x <= rect.x)){
-                return true;
-            }*/
         }
         return false;
     }
 
-    private int collisionPlatformsDown(Rectangle rect, float radius){
+    private boolean collisionPlatformsDown(Rectangle rect){
         if((_platforms == null) || (_platforms.size == 0))
-            return (-1);
+            return false;
 
         for(int i = 0; i < _platforms.size; i++){
-            if((_platforms.get(i) != null)
-                    &&(rect.y + radius >= (this._platforms.get(i).rect.y + this._platforms.get(i).rect.height))
-                    && (rect.y - radius <= (this._platforms.get(i).rect.y + this._platforms.get(i).rect.height))
-                    && (((rect.x >= this._platforms.get(i).rect.getX()) && (rect.x <= (this._platforms.get(i).rect.getX() + this._platforms.get(i).rect.getWidth())))
-                    || (rect.x + rect.getWidth() >= this._platforms.get(i).rect.getX()))){
-                return i;
+            if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
+                    && ((rect.y + rect.height) >= (_platforms.get(i).rect.y + _platforms.get(i).rect.height))
+                    && (rect.y > _platforms.get(i).rect.y)
+                    && (_platforms.get(i).rect.overlaps(_player.getRectangle()))
+                    && (
+                            ((rect.x >= _platforms.get(i).rect.x) && ((rect.x + rect.width) <= (_platforms.get(i).rect.x + _platforms.get(i).rect.width)))
+                            || ((rect.x < _platforms.get(i).rect.x) && ((rect.x + rect.width) >= (_platforms.get(i).rect.x)))
+                            || ((rect.x >= _platforms.get(i).rect.x) && ((rect.x + rect.width) > (_platforms.get(i).rect.x + _platforms.get(i).rect.width))))
+            ){
+                return true;
             }
         }
 
-        return (-1);
+        return false;
     }
 
-    private int collisionPlatforms(Rectangle rect, float radius, boolean flag){
+    private boolean collisionPlatforms(Rectangle rect, boolean flag){
         if((_platforms == null) || (_platforms.size == 0))
-            return (-1);
+            return false;
 
-        Rectangle[] rectangles = new Rectangle[]{
-          new Rectangle(rect.x + radius, rect.y, rect.width, rect.height),
-                new Rectangle(rect.x - radius, rect.y, rect.width, rect.height),
-                new Rectangle(rect.x, rect.y + radius, rect.width, rect.height),
-                new Rectangle(rect.x, rect.y - radius, rect.width, rect.height),
-                new Rectangle(rect.x + radius, rect.y + radius, rect.width, rect.height),
-                new Rectangle(rect.x - radius, rect.y - radius, rect.width, rect.height),
-                new Rectangle(rect.x + radius, rect.y - radius, rect.width, rect.height),
-                new Rectangle(rect.x - radius, rect.y + radius, rect.width, rect.height)
-        };
-
-        if(flag == false){
-            for(int k = 0; k < rectangles.length; k++){
-                for(int i = 0; i < _platforms.size; i++){
-                    if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
-                            && (rectangles[k].overlaps(_platforms.get(i).rect))){
-                        return i;
-                    }
+        if(!flag){
+            for(int i = 0; i < _platforms.size; i++){
+                if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
+                        && (rect.overlaps(_platforms.get(i).rect))){
+                    return true;
+                }
+            }
+        }else{
+            int index = (-1);
+            for(int i = 0; i < this._platforms.size; i++){
+                if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
+                        && ((rect.y + rect.height) >= (_platforms.get(i).rect.y + _platforms.get(i).rect.height))
+                        && (rect.y > _platforms.get(i).rect.y)
+                        && (_platforms.get(i).rect.overlaps(_player.getRectangle()))
+                        && (
+                        ((rect.x >= _platforms.get(i).rect.x) && ((rect.x + rect.width) <= (_platforms.get(i).rect.x + _platforms.get(i).rect.width)))
+                                || ((rect.x < _platforms.get(i).rect.x) && ((rect.x + rect.width) >= (_platforms.get(i).rect.x)))
+                                || ((rect.x >= _platforms.get(i).rect.x) && ((rect.x + rect.width) > (_platforms.get(i).rect.x + _platforms.get(i).rect.width))))
+                ){
+                    index = i;
+                    break;
                 }
             }
 
-        }else{
-            for(int k = 0; k < rectangles.length; k++){
-                int index = (-1);
-                for(int i = 0; i < this._platforms.size; i++){
-                    if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
-                            &&(rectangles[k].y >= (this._platforms.get(i).rect.getY() + this._platforms.get(i).rect.getHeight()))
-                            && (rectangles[k].y <= (this._platforms.get(i).rect.getY() + this._platforms.get(i).rect.getHeight()))
-                            && (((rectangles[k].x >= this._platforms.get(i).rect.getX()) && (rect.x <= (this._platforms.get(i).rect.getX() + this._platforms.get(i).rect.getWidth())))
-                            || (rectangles[k].x + rect.getWidth() >= this._platforms.get(i).rect.getX()))){
-                        index = i;
-                        break;
-                    }
-                }
+            if(index < 0)
+                return false;
 
-                for(int i = 0; i < this._platforms.size; i++){
-                    if(i == index)
-                        continue;
-                    if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
-                            && this._platforms.get(i).rect.overlaps(rectangles[k])){
-                        return index;
-                    }
+            for(int i = 0; i < this._platforms.size; i++){
+                if(i == index)
+                    continue;
+                if((_platforms.get(i) != null) && (_platforms.get(i).rect != null)
+                        && _platforms.get(i).rect.overlaps(rect)){
+                    return true;
                 }
             }
         }
-        return (-1);
+        return false;
     }
 
     private float posy = 0;
@@ -489,19 +496,9 @@ public class GameScreen implements Screen {
             Vector3 touchPos = new Vector3();                          //позиция, куда пользователь нажал
             touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
             _camera.unproject(touchPos);
-            /*if((touchPos.x >= (_player.getRectangle().x + _player.getRectangle().getWidth() + 200)) && (_bullet == null)){
-                _bullet = new Bullet(new Rectangle((_player.getRectangle().x + _player.getRectangle().getWidth() + 20), (_player.getRectangle().getY() + 50),
-                        50, 50), new Texture(Gdx.files.internal("bullet\\bullet.png")), true, 40,
-                        0, Gdx.graphics.getWidth());
-            }else if((touchPos.x < (_player.getRectangle().x - 200)) && (_bullet == null)){
-                _bullet = new Bullet(new Rectangle((_player.getRectangle().x - 20), (_player.getRectangle().getY() + 50),
-                        50, 50), new Texture(Gdx.files.internal("bullet\\bullet.png")), false, 40,
-                        0, Gdx.graphics.getWidth());
-            }*/
-
             //обработка нажатия на кнопку паузы
-            if(_pause.rect.overlaps(new Rectangle(touchPos.x, touchPos.y, 80, 80))){
-                this._pauseCount += 1;
+            if(_pause.rect.overlaps(new Rectangle(touchPos.x, touchPos.y, _pause.rect.width,  _pause.rect.height))){
+                this._pauseFlag = !this._pauseFlag;
                 return;
             }
 
@@ -529,10 +526,8 @@ public class GameScreen implements Screen {
                         _player.setDirectionMove(false);
                 }
 
-                System.out.println(collisionPlatforms(_player.getRectangle(), 1, false));
-                if(((touchPos.y > (_player.getRectangle().y + _player.getRectangle().height + 50)) && (!_player.getJumpUp()))
-                        && (collisionPlatforms(_player.getRectangle(), 1, false) >= 0)
-                ){
+                if((touchPos.y > (_player.getRectangle().y + _player.getRectangle().height + 50)) && (!_player.getJumpUp())
+                && (collisionPlatformsDown(_player.getRectangle()))){
                     _player.setJumpUp(true);
                     posy = touchPos.y;
                 }
@@ -543,34 +538,47 @@ public class GameScreen implements Screen {
         if(_pauseFlag)
             return;
 
+        if(_player.getJumpUp()){
+            if(!collisionPlatformsUp(_player.getRectangle())){
+                _player.moveUp(10);
+            }else{
+                _player.setJumpUp(false);
+            }
+        }else{
+            _player.setJumpUp(false);
+            _player.setJumpDown(true);
+
+            if((_player.getJumpDown()) && (!collisionPlatformsDown(_player.getRectangle()))){
+                _player.moveDown(10);
+            }
+            _player.setJumpDown(false);
+        }
+
         //обработка движения вверх
-        if(_player.getJumpUp() && (collisionPlatforms(_player.getRectangle(), 1, true) < 0))
+        /*if(_player.getJumpUp() && (collisionPlatforms(_player.getRectangle(), 1, true) < 0))
             _player.moveUp(10);
         else{
             _player.setJumpUp(false);
-        }
+        }*/
 
         //обработка падения вниз
-        if((collisionPlatformsDown(_player.getRectangle(), 1) < 0)
-        || ((!_player.getJumpUp()) && (collisionPlatforms(_player.getRectangle(), 1, false) < 0))){
+        /*if((collisionPlatformsDown(_player.getRectangle(), 1) < 0)
+                || ((!_player.getJumpUp()) && (!collisionPlatforms(_player.getRectangle(), false)))){
             _player.setJumpDown(true);
         }else{
             _player.setJumpDown(false);
         }
 
-        if(_player.getJumpDown() && (collisionPlatforms(_player.getRectangle(), 1, false) < 0))
+        if(_player.getJumpDown() && (!collisionPlatforms(_player.getRectangle(), false)))
             _player.moveDown(5);
-        else if(collisionPlatforms(_player.getRectangle(), 1, true) >= 0){
+        else if(collisionPlatforms(_player.getRectangle(), true)){
             _player.moveDown(5);
         }
 
-       /* else if((collisionPlatformsLeft(_player.getRectangle()) || collisionPlatformsRight(_player.getRectangle()))
-        && (!collisionPlatformsDown(_player.getRectangle())))
-            _player.moveDown(5);*/
-
         //изменение метки прыжка (если после прыжка игрок врезается в стенку, то будет падение вниз)
-        if(collisionPlatforms(_player.getRectangle(), 1, false) >= 0)
-            _player.setJumpDown(false);
+        if(collisionPlatforms(_player.getRectangle(), false))
+            _player.setJumpDown(false);*/
+
 
         /*if(posy != 0){
             player.setDirectionJump(true);
