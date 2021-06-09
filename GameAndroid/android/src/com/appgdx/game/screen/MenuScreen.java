@@ -2,7 +2,6 @@ package com.appgdx.game.screen;
 
 import com.appgdx.game.AndroidLauncher;
 import com.appgdx.game.MenuGame;
-import com.appgdx.game.screen.GameScreen;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -24,10 +23,10 @@ public class MenuScreen implements Screen {
     private Rectangle _ratingButtonRect;
     private Rectangle _exitButtonRect;
 
-    private MenuGame _menu;
+    public static MenuGame menu;
 
     public MenuScreen(MenuGame menu){
-        this._menu = menu;
+        this.menu = menu;
         float height = Gdx.graphics.getHeight();
         float width = Gdx.graphics.getWidth();
 
@@ -73,7 +72,11 @@ public class MenuScreen implements Screen {
             _camera.unproject(touchPos);
 
             if(_startButtonRect.overlaps(new Rectangle(touchPos.x, touchPos.y, _startButtonRect.width, _startButtonRect.height))){
-                this._menu.setScreen(new GameScreen());
+                try {
+                    this.menu.setScreen(new GameScreen());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }else if(_ratingButtonRect.overlaps(new Rectangle(touchPos.x, touchPos.y, _ratingButtonRect.width, _ratingButtonRect.height))){
                 System.out.println("RATING");
             }else if(_exitButtonRect.overlaps(new Rectangle(touchPos.x, touchPos.y, _exitButtonRect.width, _exitButtonRect.height))){

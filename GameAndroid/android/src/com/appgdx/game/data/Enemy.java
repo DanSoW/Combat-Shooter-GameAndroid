@@ -91,16 +91,4 @@ public class Enemy {
     public Rectangle getRectangle(){
         return _enRect;
     }
-
-    public boolean isDispose(){
-        return ((_enStatesRight == null) || (_enStatesRight.size == 0)
-                || (_enStatesLeft == null) || (_enStatesLeft.size == 0));
-    }
-
-    public void dispose(){
-        for(int i = 0; i < _enStatesRight.size; i++){
-            _enStatesRight.get(i).dispose();
-            _enStatesLeft.get(i).dispose();
-        }
-    }
 }

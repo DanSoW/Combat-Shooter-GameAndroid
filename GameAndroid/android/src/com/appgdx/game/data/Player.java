@@ -66,6 +66,10 @@ public class Player {
         }
     }
 
+    public void setPosition(Rectangle pos){
+        _plRect = pos;
+    }
+
     public int getCountBullet(){
         return this._countBullet;
     }
