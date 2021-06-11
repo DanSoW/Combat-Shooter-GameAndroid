@@ -6,6 +6,10 @@ import com.badlogic.gdx.Game;
 public class MenuGame extends Game {
     @Override
     public void create() {
-        setScreen(new MenuScreen(this));
+        try {
+            setScreen(new MenuScreen(this));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

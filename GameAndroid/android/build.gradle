@@ -89,4 +89,8 @@ task run(type: Exec) {
     commandLine "$adb", 'shell', 'am', 'start', '-n', 'com.appgdx.game/com.appgdx.game.AndroidLauncher'
 }
 
+dependencies {
+    implementation 'org.jetbrains:annotations:15.0'
+}
+
 eclipse.project.name = appName + "-android"

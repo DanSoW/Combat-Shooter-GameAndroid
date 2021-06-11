@@ -220,6 +220,9 @@ public class GameScreen implements Screen {
     Array<Texture> _rightEnemy = new Array<Texture>();
     Array<Texture> _leftEnemy = new Array<Texture>();
 
+    //ссылка на главное меню
+    public static MenuScreen menuScreen;
+
     public GameScreen() throws Exception {
 
         _camera = new OrthographicCamera();
@@ -227,7 +230,7 @@ public class GameScreen implements Screen {
         _batch = new SpriteBatch();  //конструктор спрайтов
 
         _level = new LevelData(3); //инициализация объекта, реализующий логику уровней
-
+        running = true;
         //инициализация текстур:
 
         //текстуры платформ
@@ -391,8 +394,8 @@ public class GameScreen implements Screen {
                 new Rectangle(_level.getElementPlatform(1).get(1).rect.x + 10,
                         _level.getElementPlatform(1).get(1).rect.y + _level.getElementPlatform(1).get(1).rect.getHeight(),
                         80, 80),
-                new Rectangle(_level.getElementPlatform(2).get(2).rect.x,
-                        _level.getElementPlatform(2).get(2).rect.y + _level.getElementPlatform(2).get(2).rect.getHeight(),
+                new Rectangle(_level.getElementPlatform(2).get(4).rect.x,
+                        _level.getElementPlatform(2).get(4).rect.y + _level.getElementPlatform(2).get(4).rect.getHeight(),
                         80, 80),
         });
         _chestLow = new ObjectTexture(new Texture(Gdx.files.internal("chest/chestLow.png")),
@@ -404,8 +407,8 @@ public class GameScreen implements Screen {
                         _platforms.get(4).rect.y + _platforms.get(4).rect.getHeight(), 80, 80),
                 new Rectangle((_level.getElementPlatform(1).get(4).rect.x + _level.getElementPlatform(1).get(4).rect.width - 80),
                         _level.getElementPlatform(1).get(4).rect.y + _level.getElementPlatform(1).get(4).rect.getHeight(), 80, 80),
-                new Rectangle((_level.getElementPlatform(2).get(4).rect.x + _level.getElementPlatform(2).get(4).rect.width - 100),
-                        _level.getElementPlatform(2).get(4).rect.y + _level.getElementPlatform(2).get(4).rect.getHeight(), 80, 80)
+                new Rectangle((_level.getElementPlatform(2).get(0).rect.x + _level.getElementPlatform(2).get(0).rect.width - 100),
+                        _level.getElementPlatform(2).get(0).rect.y + _level.getElementPlatform(2).get(0).rect.getHeight(), 80, 80)
         });
         _chestBig = new ObjectTexture(new Texture(Gdx.files.internal("chest/chestBig.png")),
                 _level.getCurrentPositionChestBig());
@@ -427,6 +430,7 @@ public class GameScreen implements Screen {
         _player = new Player(_level.getCurrentPositionPlayer(), rightPlayer, leftPlayer, rightPlayerJump, leftPlayerJump, 20,
                 30, 0, AndroidLauncher.HEIGHT , 0, AndroidLauncher.WIDTH);
         _player.setCountBullet(3);
+        _player.setScore(MenuScreen.getRatingPlayer());
 
         /*mans.add(new Texture((Gdx.files.internal("man\\manRight1.png"))));
         mans.add(new Texture((Gdx.files.internal("man\\manRight2.png"))));
@@ -443,25 +447,6 @@ public class GameScreen implements Screen {
 
         //rainMusic.play();
 
-        /*Thread threadPause = new Thread(){
-            @Override
-            public void run(){
-                while(running){
-                    if(_pauseCount > 0){
-                        _pauseFlag = !_pauseFlag;
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                        _pauseCount = 0;
-                    }
-                }
-            }
-        };
-
-        threadPause.start();*/
-
         threadMove = new Thread(){
             @Override
             public void run(){
@@ -472,8 +457,31 @@ public class GameScreen implements Screen {
                     if((_player == null) || (_player.isDispose()))
                         break;
 
-                    if((_player.getRectangle().overlaps(_door.rect)) || (_player.getHp() <= 0)){
+                    if(_player.getHp() <= 0){
+                        running = false;
+                        dispose();
+                        MenuScreen.menu.setScreen(menuScreen);
+                        try {
+                            MenuScreen.updateRating(_player.getScore());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    }
+
+                    if(_player.getRectangle().overlaps(_door.rect)){
                         _level.nextLevel();
+                        if((_level.getCurrentIndex() + 1) > _level.getCountLevel()){
+                            running = false;
+                            dispose();
+                            MenuScreen.menu.setScreen(menuScreen);
+                            try {
+                                MenuScreen.updateRating(_player.getScore());
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            break;
+                        }
                         _platforms = _level.getCurrentPlatforms();
                         _enemies = _level.getCurrentEnemies();
                         _player.setPosition(_level.getCurrentPositionPlayer());
@@ -481,6 +489,7 @@ public class GameScreen implements Screen {
                         _chestLow.rect = _level.getCurrentPositionChestLow();
                         _door.rect = _level.getCurrentPositionDoor();
                         _player.setCountBullet(3);
+                        _player.setDirectionMove(true);
                         continue;
                     }
 
@@ -547,16 +556,6 @@ public class GameScreen implements Screen {
 
         threadMove.start(); //запуск потока, который обрабатывает движение игрока
     }
-
-    /*private void spawnRaindrop(){
-        Rectangle raindrop = new Rectangle();
-        raindrop.x = MathUtils.random(0, 800-64);
-        raindrop.y = 480;
-        raindrop.width = 64;
-        raindrop.height = 64;
-        raindrops.add(raindrop);
-        lastDropTime = TimeUtils.nanoTime();
-    }*/
 
     private boolean collisionEnemy(Rectangle rect){
         if((_enemies == null) || (_enemies.size == 0))
