@@ -21,7 +21,10 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Collections;
 import com.badlogic.gdx.utils.ScreenUtils;
+
+import java.util.ArrayList;
 
 public class MenuScreen implements Screen {
 
@@ -33,12 +36,14 @@ public class MenuScreen implements Screen {
     private Texture _exitButtonTexture;
     private Texture _registerButtonTexture;
     private Texture _authorizationButtonTexture;
+    private Texture _backButtonTexture;
 
     private Rectangle _startButtonRect;
     private Rectangle _ratingButtonRect;
     private Rectangle _exitButtonRect;
     private Rectangle _registerButtonRect;
     private Rectangle _authorizationButtonRect;
+    private Rectangle _backButtonRect;
 
     public static MenuGame menu;
 
@@ -48,9 +53,10 @@ public class MenuScreen implements Screen {
 
     //метка о идентификации
     public static boolean identifier;
+    public static boolean work;
+    private static boolean viewRating;  //просмотр рэйтинга
 
     public static ManagerDatabase dbManager;
-    public static boolean work;
 
     private static Array<RegisterData> registerData = new Array<>();
     private static Array<RatingData> ratingData = new Array<>();
@@ -73,6 +79,7 @@ public class MenuScreen implements Screen {
 
         work = true;
         identifier = false;
+        viewRating = false;
 
         float height = Gdx.graphics.getHeight();
         float width = Gdx.graphics.getWidth();
@@ -86,6 +93,7 @@ public class MenuScreen implements Screen {
         _exitButtonTexture = new Texture(Gdx.files.internal("menu\\texture_exit.png"));
         _authorizationButtonTexture = new Texture(Gdx.files.internal("menu\\texture_authorization.png"));
         _registerButtonTexture = new Texture(Gdx.files.internal("menu\\texture_register.png"));
+        _backButtonTexture = new Texture(Gdx.files.internal("menu\\texture_back.png"));
 
         _startButtonRect = new Rectangle(AndroidLauncher.WIDTH / 2 - _startButtonTexture.getWidth() / 2, AndroidLauncher.HEIGHT - 200,
                 _startButtonTexture.getWidth(), _startButtonTexture.getHeight());
@@ -96,10 +104,13 @@ public class MenuScreen implements Screen {
         _ratingButtonRect = new Rectangle(AndroidLauncher.WIDTH / 2 - _ratingButtonTexture.getWidth() / 2, AndroidLauncher.HEIGHT - 350,
                 _ratingButtonTexture.getWidth(), _ratingButtonTexture.getHeight());
 
-        _authorizationButtonRect = new Rectangle(AndroidLauncher.WIDTH / 2 - _ratingButtonTexture.getWidth() / 2, AndroidLauncher.HEIGHT - 350,
+        _authorizationButtonRect = new Rectangle(AndroidLauncher.WIDTH / 2 - _ratingButtonTexture.getWidth() / 2, AndroidLauncher.HEIGHT - 450,
                 _ratingButtonTexture.getWidth(), _ratingButtonTexture.getHeight());
 
         _exitButtonRect = new Rectangle(AndroidLauncher.WIDTH / 2 - _exitButtonTexture.getWidth() / 2, AndroidLauncher.HEIGHT - 500,
+                _exitButtonTexture.getWidth(), _exitButtonTexture.getHeight());
+
+        _backButtonRect = new Rectangle(AndroidLauncher.WIDTH / 2 - _exitButtonTexture.getWidth() / 2, 50,
                 _exitButtonTexture.getWidth(), _exitButtonTexture.getHeight());
 
         dbManager = new ManagerDatabase(AndroidLauncher.context);
@@ -145,6 +156,7 @@ public class MenuScreen implements Screen {
                     scoreIndex = cursor.getColumnIndex(ManagerDatabase.SCORE);
             ratingData.add(new RatingData(cursor.getString(loginIndex), cursor.getInt(scoreIndex)));
         }
+
         cursor.close();
         database.close();
     }
@@ -172,14 +184,23 @@ public class MenuScreen implements Screen {
         database.close();
     }
 
+    public static void deleteRating(String login){
+        SQLiteDatabase database = dbManager.getWritableDatabase();
+        database.delete(ManagerDatabase.RATING, ManagerDatabase.FK_LOGIN + " = ?",
+                new String[]{
+                        login
+                });
+        database.close();
+    }
+
     public static void updateRating(int score) throws Exception {
         int index = (-1);
+
+        ReadAllRatingData();
         for(int i = 0; i < ratingData.size; i++){
             if(ratingData.get(i).login.equals(nameUser)){
                 index = i;
             }
-
-            System.out.println(ratingData.get(i).login + " - " + ratingData.get(i).score);
         }
 
         if(index >= 0){
@@ -304,19 +325,67 @@ public class MenuScreen implements Screen {
         }, "Login", "name", "");
     }
 
+    public Array<RatingData> sortRatingData(Array<RatingData> rating){
+        if(rating.size == 0)
+            return null;
+
+        for(int i = 0; i < rating.size; i++){
+            System.out.println(rating.get(i).login);
+        }
+
+        boolean flag = true;
+        while(flag){
+            flag = false;
+            for(int i = 0; i < (rating.size - 1); i++){
+                if(rating.get(i).score < (rating.get(i + 1).score)){
+                    int score1 = rating.get(i + 1).score, score2 = rating.get(i).score;
+                    String login1 = rating.get(i + 1).login.substring(0),
+                            login2 = rating.get(i).login.substring(0);
+
+                    rating.get(i + 1).score = score2;
+                    rating.get(i + 1).login = login2;
+
+                    rating.get(i).score = score1;
+                    rating.get(i).login = login1;
+                    flag = true;
+                }
+            }
+        }
+
+        return rating;
+    }
+
     @Override
     public void render(float delta) {
         ScreenUtils.clear(0, 0, 0.2f, 1);
         _batch.setProjectionMatrix(_camera.combined);
         _batch.begin();
 
-        if(identifier){
+        if((identifier) && (!viewRating)){
             _batch.draw(_startButtonTexture, _startButtonRect.x, _startButtonRect.y,
                     _startButtonRect.width, _startButtonRect.height);
             _batch.draw(_ratingButtonTexture, _ratingButtonRect.x, _ratingButtonRect.y,
                     _ratingButtonRect.width, _ratingButtonRect.height);
             _batch.draw(_exitButtonTexture, _exitButtonRect.x, _exitButtonRect.y,
                     _exitButtonRect.width, _exitButtonRect.height);
+        }else if(viewRating){
+            _batch.draw(_backButtonTexture, _backButtonRect.x, _backButtonRect.y,
+                    _backButtonRect.width, _backButtonRect.height);
+
+            BitmapFont font;
+            CharSequence information = "Score";
+            font = new BitmapFont();
+            font.getData().setScale(2);
+            font.draw(_batch, information, AndroidLauncher.WIDTH / 2 - information.length()/2 * 12, AndroidLauncher.HEIGHT - 50);
+
+            Array<RatingData> rating = sortRatingData(ratingData);
+            if(rating != null){
+                for(int i = 0, j = (rating.size > 10)? 10 : rating.size; i < j; i++){
+                    CharSequence info = String.valueOf((i + 1)) + ". " + rating.get(i).login + " - " + rating.get(i).score.toString();
+                    font.draw(_batch, info, AndroidLauncher.WIDTH / 2 - 100, AndroidLauncher.HEIGHT - ((i + 1)*10 + (100 + (i * 25))));
+                }
+            }
+
         }else{
             _batch.draw(_registerButtonTexture, _registerButtonRect.x, _registerButtonRect.y,
                     _registerButtonRect.width, _registerButtonRect.height);
@@ -345,6 +414,10 @@ public class MenuScreen implements Screen {
             _camera.unproject(touchPos);
 
             if(identifier){
+                if(viewRating && (_backButtonRect.overlaps(new Rectangle(touchPos.x, touchPos.y, _backButtonRect.width, _backButtonRect.height)))){
+                    viewRating = false;
+                }
+
                 if(_startButtonRect.overlaps(new Rectangle(touchPos.x, touchPos.y, _startButtonRect.width, _startButtonRect.height))){
                     try {
                         this.menu.setScreen(new GameScreen());
@@ -352,7 +425,7 @@ public class MenuScreen implements Screen {
                         e.printStackTrace();
                     }
                 }else if(_ratingButtonRect.overlaps(new Rectangle(touchPos.x, touchPos.y, _ratingButtonRect.width, _ratingButtonRect.height))){
-                    System.out.println("RATING");
+                    viewRating = true;
                 }else if(_exitButtonRect.overlaps(new Rectangle(touchPos.x, touchPos.y, _exitButtonRect.width, _exitButtonRect.height))){
                     Gdx.app.exit();
                 }

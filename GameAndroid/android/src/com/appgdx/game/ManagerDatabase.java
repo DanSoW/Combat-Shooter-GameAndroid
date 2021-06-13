@@ -38,7 +38,7 @@ public class ManagerDatabase extends SQLiteOpenHelper {
                         PASSWORD + " TEXT);"
                 );
             }catch(Exception e){}
-        }else if(newVersion == 3){
+        }else if(newVersion == 2){
             try{
                 db.execSQL("CREATE TABLE " + RATING +
                         " (" + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
