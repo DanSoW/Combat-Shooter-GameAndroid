@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 public class ManagerDatabase extends SQLiteOpenHelper {
 
     //Название базы данных
-    public static final String DATABASE_NAME = "DataBaseSQL";
+    public static final String DATABASE_NAME = "DataBaseLite";
 
     //Название таблиц
     public static final String REGISTER = "Register";
@@ -24,7 +24,7 @@ public class ManagerDatabase extends SQLiteOpenHelper {
     public static final String FK_LOGIN = "login_fk";
     public static final String SCORE = "score";
 
-    private static final int DATABASE_VERSION = 3;
+    private static int DATABASE_VERSION = 1;
 
     public ManagerDatabase(@Nullable Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -37,6 +37,8 @@ public class ManagerDatabase extends SQLiteOpenHelper {
                         + LOGIN + " TEXT PRIMARY KEY, " +
                         PASSWORD + " TEXT);"
                 );
+                DATABASE_VERSION = 2;
+                updateDatabase(db, 1, DATABASE_VERSION);
             }catch(Exception e){}
         }else if(newVersion == 2){
             try{
