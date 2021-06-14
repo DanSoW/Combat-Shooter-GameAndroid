@@ -1,12 +1,10 @@
 package com.appgdx.game.screen;
 
-import android.graphics.Rect;
-
 import com.appgdx.game.AndroidLauncher;
-import com.appgdx.game.MenuGame;
-import com.appgdx.game.R;
 import com.appgdx.game.data.Bullet;
 import com.appgdx.game.data.Enemy;
+import com.appgdx.game.data.LevelData;
+import com.appgdx.game.data.ObjectTexture;
 import com.appgdx.game.data.Player;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
@@ -21,167 +19,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-import java.util.ArrayList;
-import java.util.concurrent.RecursiveAction;
-
 public class GameScreen implements Screen {
-    private class ObjectTexture{                         //объект с текстурой
-        public Texture texture;
-        public Rectangle rect;
-
-        public ObjectTexture(Texture texture, Rectangle rect) {
-            this.texture = texture;
-            this.rect = rect;
-        }
-    }
-
-    private class LevelData{
-        private int _countLevel;
-        private int _indexLevel;
-        private Array<Array<Enemy>> _enemies;              //монстры
-        private Array<Array<ObjectTexture>> _platforms;    //платформы
-        private Rectangle[] _positionChestLow = null;                //расположение малого сундука на уровне
-        private Rectangle[] _positionChestBig = null;                //расположение большого сундука на уровне
-        private Rectangle[] _positionPlayer = null;          //расположение игрока на уровне
-        private Rectangle[] _positionDoor = null;            //расположение двери на уровне
-
-        public void nextLevel(){
-            _enemies.removeIndex(0);
-            _platforms.removeIndex(0);
-            _indexLevel++;
-        }
-
-        public int getCountLevel(){
-            return _countLevel;
-        }
-
-        public int getCurrentIndex(){
-            return _indexLevel;
-        }
-
-        public Rectangle getCurrentPositionDoor(){
-            if(_indexLevel >= _countLevel)
-                return null;
-            return _positionDoor[_indexLevel];
-        }
-
-        public Rectangle getCurrentPositionPlayer(){
-            if(_indexLevel >= _countLevel)
-                return null;
-            return _positionPlayer[_indexLevel];
-        }
-
-        public Rectangle getCurrentPositionChestLow(){
-            if(_indexLevel >= _countLevel)
-                return null;
-            return _positionChestLow[_indexLevel];
-        }
-
-        public Rectangle getCurrentPositionChestBig(){
-            if(_indexLevel >= _countLevel)
-                return null;
-            return _positionChestBig[_indexLevel];
-        }
-
-        public Array<Enemy> getCurrentEnemies(){
-            if(_indexLevel >= _countLevel)
-                return null;
-            return _enemies.get(0);
-        }
-
-        public Array<Enemy> getElementEnemy(int index){
-            if((index < 0) || (index >= _enemies.size))
-                return null;
-            return _enemies.get(index);
-        }
-
-        public Array<ObjectTexture> getCurrentPlatforms(){
-            if(_indexLevel >= _countLevel)
-                return null;
-            return _platforms.get(0);
-        }
-
-        public Array<ObjectTexture> getElementPlatform(int index){
-            if((index < 0) || (index >= _platforms.size))
-                return null;
-            return _platforms.get(index);
-        }
-
-        public void addInitialPositionChestLow(Rectangle[] rect){
-            _positionChestLow = rect.clone();
-        }
-
-        public void addInitialPositionChestBig(Rectangle[] rect){
-            _positionChestBig = rect.clone();
-        }
-
-        public void addInitialPositionPlayer(Rectangle[] rect){
-            _positionPlayer = rect.clone();
-        }
-
-        public void addInitialPositionDoor(Rectangle[] rect){
-            _positionDoor = rect.clone();
-        }
-
-        public void addCurrentPositionChestLow(Rectangle rect){
-            if(_indexLevel >= _countLevel)
-                return;
-            _positionChestLow[_indexLevel] = rect;
-        }
-
-        public void addCurrentPositionChestBig(Rectangle rect){
-            if(_indexLevel >= _countLevel)
-                return;
-            _positionChestBig[_indexLevel] = rect;
-        }
-
-        public void addCurrentPositionPlayer(Rectangle rect){
-            if(_indexLevel >= _countLevel)
-                return;
-            _positionPlayer[_indexLevel] = rect;
-        }
-
-        public void addCurrentPositionDoor(Rectangle rect){
-            if(_indexLevel >= _countLevel)
-                return;
-            _positionDoor[_indexLevel] = rect;
-        }
-
-        public void addInitialPlatforms(ObjectTexture objects, int index) throws Exception {
-            if((index < 1) || (index > _countLevel)){
-                throw new Exception("Error: index shall will be in range [1; " + _countLevel + "]");
-            }
-
-            _platforms.get((index - 1)).add(objects);
-        }
-
-        public void addInitialEnemies(Enemy objects, int index) throws Exception {
-            if((index < 1) || (index > _countLevel)){
-                throw new Exception("Error: index shall will be in range [1; " + _countLevel + "]");
-            }
-
-            _enemies.get((index - 1)).add(objects);
-        }
-
-        public LevelData(int lvl){
-            _countLevel = lvl;
-            _indexLevel = 0;
-
-            _enemies = new Array<Array<Enemy>>();
-            _platforms = new Array<Array<ObjectTexture>>();
-
-            for(int i = 0; i < _countLevel; i++){
-                _enemies.add(new Array<Enemy>());
-                _platforms.add(new Array<ObjectTexture>());
-            }
-
-            _positionChestLow   = new Rectangle[_countLevel];
-            _positionChestBig   = new Rectangle[_countLevel];
-            _positionPlayer     = new Rectangle[_countLevel];
-            _positionDoor       = new Rectangle[_countLevel];
-        }
-    }
-
     private Array<ObjectTexture> _platforms;    //платформы
     private ObjectTexture _attack;              //управляющая кнопка выстрела
     private ObjectTexture _pause;               //управляющая кнопка для паузы
@@ -200,11 +38,15 @@ public class GameScreen implements Screen {
     private Texture _lavaStage = null;
     private Texture _holdStage = null;
 
-    /*private volatile Array<Texture> _mans;
-    private volatile Texture _currentMan;
-    private Texture _manImage;
-    private Sound dropSound;
-    private Music rainMusic;*/
+    //музыкальное сопровождение
+    private Sound _bulletAttack;
+    private Sound _monsterAttack;
+    private Sound _monsterKilled;
+    private Sound _bonus;
+    private Sound _nextLevel;
+    private Sound _gameOver;
+    private Sound _gameWin;
+    private Music _background;
 
     private SpriteBatch _batch;
     private OrthographicCamera _camera;
@@ -229,7 +71,7 @@ public class GameScreen implements Screen {
         _camera.setToOrtho(false, AndroidLauncher.WIDTH, AndroidLauncher.HEIGHT); //установка размеров камеры
         _batch = new SpriteBatch();  //конструктор спрайтов
 
-        _level = new LevelData(3); //инициализация объекта, реализующий логику уровней
+        _level = new LevelData(5); //инициализация объекта, реализующий логику уровней
         running = true;
         //инициализация текстур:
 
@@ -311,6 +153,20 @@ public class GameScreen implements Screen {
         _level.addInitialPlatforms(new ObjectTexture(_lavaStage, new Rectangle(1050, 400, 400, 30)), 3);
         _level.addInitialPlatforms(new ObjectTexture(_holdStage, new Rectangle(480, 350, 150, 30)), 3);
 
+        _level.addInitialPlatforms(new ObjectTexture(_stage, rectangleMainStage), 4);
+        _level.addInitialPlatforms(new ObjectTexture(_holdStage, new Rectangle(0, 350, 200, 30)), 4);
+        _level.addInitialPlatforms(new ObjectTexture(_lavaStage, new Rectangle(880, 230, 400, 30)), 4);
+        _level.addInitialPlatforms(new ObjectTexture(_holdStage, new Rectangle(500, 200, 350, 30)), 4);
+        _level.addInitialPlatforms(new ObjectTexture(_lavaStage, new Rectangle(1050, 410, 350, 30)), 4);
+        _level.addInitialPlatforms(new ObjectTexture(_lavaStage, new Rectangle(240, 300, 150, 30)), 4);
+
+        _level.addInitialPlatforms(new ObjectTexture(_stage, rectangleMainStage), 5);
+        _level.addInitialPlatforms(new ObjectTexture(_lavaStage, new Rectangle(300, 200, 180, 30)), 5);
+        _level.addInitialPlatforms(new ObjectTexture(_lavaStage, new Rectangle(0, 260, 100, 30)), 5);
+        _level.addInitialPlatforms(new ObjectTexture(_lavaStage, new Rectangle(800, 200, 300, 30)), 5);
+        _level.addInitialPlatforms(new ObjectTexture(_lavaStage, new Rectangle(1050, 400, 390, 30)), 5);
+        _level.addInitialPlatforms(new ObjectTexture(_lavaStage, new Rectangle(400, 300, 300, 30)), 5);
+
         _platforms = _level.getCurrentPlatforms();
 
         //создание монстров
@@ -384,8 +240,61 @@ public class GameScreen implements Screen {
                 15
         ), 3);
 
-        _enemies = _level.getCurrentEnemies();
+        _level.addInitialEnemies(new Enemy(
+                new Rectangle(_level.getElementPlatform(3).get(2).rect.x,
+                        _level.getElementPlatform(3).get(2).rect.y + _level.getElementPlatform(3).get(2).rect.getHeight(), 150, 150),
+                _rightEnemy,
+                _leftEnemy,
+                _level.getElementPlatform(3).get(2).rect,
+                15
+        ), 4);
 
+        _level.addInitialEnemies(new Enemy(
+                new Rectangle(_level.getElementPlatform(3).get(4).rect.x,
+                        _level.getElementPlatform(3).get(4).rect.y + _level.getElementPlatform(3).get(4).rect.getHeight(), 150, 150),
+                _rightEnemy,
+                _leftEnemy,
+                _level.getElementPlatform(3).get(4).rect,
+                20
+        ), 4);
+
+        _level.addInitialEnemies(new Enemy(
+                new Rectangle(_level.getElementPlatform(3).get(3).rect.x,
+                        _level.getElementPlatform(3).get(3).rect.y + _level.getElementPlatform(3).get(3).rect.getHeight(), 150, 150),
+                _rightEnemy,
+                _leftEnemy,
+                _level.getElementPlatform(3).get(3).rect,
+                10
+        ), 4);
+
+        _level.addInitialEnemies(new Enemy(
+                new Rectangle(_level.getElementPlatform(4).get(3).rect.x,
+                        _level.getElementPlatform(4).get(3).rect.y + _level.getElementPlatform(4).get(3).rect.getHeight(), 150, 150),
+                _rightEnemy,
+                _leftEnemy,
+                _level.getElementPlatform(4).get(3).rect,
+                25
+        ), 5);
+
+        _level.addInitialEnemies(new Enemy(
+                new Rectangle(_level.getElementPlatform(4).get(5).rect.x,
+                        _level.getElementPlatform(4).get(5).rect.y + _level.getElementPlatform(4).get(5).rect.getHeight(), 150, 150),
+                _rightEnemy,
+                _leftEnemy,
+                _level.getElementPlatform(4).get(5).rect,
+                20
+        ), 5);
+
+        _level.addInitialEnemies(new Enemy(
+                new Rectangle(_level.getElementPlatform(4).get(4).rect.x,
+                        _level.getElementPlatform(4).get(4).rect.y + _level.getElementPlatform(4).get(4).rect.getHeight(), 150, 150),
+                _rightEnemy,
+                _leftEnemy,
+                _level.getElementPlatform(4).get(4).rect,
+                25
+        ), 5);
+
+        _enemies = _level.getCurrentEnemies();
 
         //создание малого сундука
         _level.addInitialPositionChestLow(new Rectangle[]{
@@ -397,6 +306,12 @@ public class GameScreen implements Screen {
                 new Rectangle(_level.getElementPlatform(2).get(4).rect.x,
                         _level.getElementPlatform(2).get(4).rect.y + _level.getElementPlatform(2).get(4).rect.getHeight(),
                         80, 80),
+                new Rectangle(_level.getElementPlatform(3).get(2).rect.x + 10,
+                        _level.getElementPlatform(3).get(2).rect.y + _level.getElementPlatform(3).get(2).rect.getHeight(),
+                        80, 80),
+                new Rectangle(_level.getElementPlatform(4).get(2).rect.x + 10,
+                        _level.getElementPlatform(4).get(2).rect.y + _level.getElementPlatform(4).get(2).rect.getHeight(),
+                        80, 80)
         });
         _chestLow = new ObjectTexture(new Texture(Gdx.files.internal("chest/chestLow.png")),
                 _level.getCurrentPositionChestLow());
@@ -408,7 +323,11 @@ public class GameScreen implements Screen {
                 new Rectangle((_level.getElementPlatform(1).get(4).rect.x + _level.getElementPlatform(1).get(4).rect.width - 80),
                         _level.getElementPlatform(1).get(4).rect.y + _level.getElementPlatform(1).get(4).rect.getHeight(), 80, 80),
                 new Rectangle((_level.getElementPlatform(2).get(0).rect.x + _level.getElementPlatform(2).get(0).rect.width - 100),
-                        _level.getElementPlatform(2).get(0).rect.y + _level.getElementPlatform(2).get(0).rect.getHeight(), 80, 80)
+                        _level.getElementPlatform(2).get(0).rect.y + _level.getElementPlatform(2).get(0).rect.getHeight(), 80, 80),
+                new Rectangle((_level.getElementPlatform(3).get(4).rect.x + _level.getElementPlatform(3).get(4).rect.width - 80),
+                        _level.getElementPlatform(3).get(4).rect.y + _level.getElementPlatform(3).get(4).rect.getHeight(), 80, 80),
+                new Rectangle((_level.getElementPlatform(4).get(4).rect.x + _level.getElementPlatform(4).get(4).rect.width - 80),
+                        _level.getElementPlatform(4).get(4).rect.y + _level.getElementPlatform(4).get(4).rect.getHeight(), 80, 80)
         });
         _chestBig = new ObjectTexture(new Texture(Gdx.files.internal("chest/chestBig.png")),
                 _level.getCurrentPositionChestBig());
@@ -417,12 +336,16 @@ public class GameScreen implements Screen {
         _level.addInitialPositionDoor(new Rectangle[]{
                 new Rectangle(0, 475, 100, 150),
                 new Rectangle((AndroidLauncher.WIDTH / 2), (AndroidLauncher.HEIGHT - 200), 100, 150),
-                new Rectangle((AndroidLauncher.WIDTH - 100), 420, 100, 150)
+                new Rectangle((AndroidLauncher.WIDTH - 100), 420, 100, 150),
+                new Rectangle(0, 370, 100, 150),
+                new Rectangle(AndroidLauncher.WIDTH - 100, 100, 100, 150)
         });
         _door = new ObjectTexture(new Texture(Gdx.files.internal("door/door_finish.png")), _level.getCurrentPositionDoor());
 
-        //создание игра
+        //создание позиции игрока
         _level.addInitialPositionPlayer(new Rectangle[]{
+                new Rectangle(0, AndroidLauncher.HEIGHT - (AndroidLauncher.HEIGHT  - 100), 100, 150),
+                new Rectangle(0, AndroidLauncher.HEIGHT - (AndroidLauncher.HEIGHT  - 100), 100, 150),
                 new Rectangle(0, AndroidLauncher.HEIGHT - (AndroidLauncher.HEIGHT  - 100), 100, 150),
                 new Rectangle(0, AndroidLauncher.HEIGHT - (AndroidLauncher.HEIGHT  - 100), 100, 150),
                 new Rectangle(0, AndroidLauncher.HEIGHT - (AndroidLauncher.HEIGHT  - 100), 100, 150)
@@ -432,20 +355,18 @@ public class GameScreen implements Screen {
         _player.setCountBullet(3);
         _player.setScore(MenuScreen.getRatingPlayer());
 
-        /*mans.add(new Texture((Gdx.files.internal("man\\manRight1.png"))));
-        mans.add(new Texture((Gdx.files.internal("man\\manRight2.png"))));
-        mans.add(new Texture((Gdx.files.internal("man\\manRight3.png"))));*/
-        //загрузка текстур
-       /* dropImage = new Texture(Gdx.files.internal("drop.png"));
-        bucketImage = new Texture(Gdx.files.internal("bucket.png"));*/
-        //загрузка треков
-        //dropSound = Gdx.audio.newSound(Gdx.files.internal("waterdrop.wav"));
-        //rainMusic = Gdx.audio.newMusic(Gdx.files.internal("undertreeinrain.mp3"));
+        _bulletAttack = Gdx.audio.newSound(Gdx.files.internal("bullet_attack.mp3"));
+        _monsterAttack = Gdx.audio.newSound(Gdx.files.internal("monster.mp3"));
+        _monsterKilled = Gdx.audio.newSound(Gdx.files.internal("monster_killed.mp3"));
+        _bonus = Gdx.audio.newSound(Gdx.files.internal("bonus.mp3"));
+        _nextLevel = Gdx.audio.newSound(Gdx.files.internal("next_level.mp3"));
+        _gameOver = Gdx.audio.newSound(Gdx.files.internal("game_over.mp3"));
+        _gameWin = Gdx.audio.newSound(Gdx.files.internal("game_win.mp3"));
+        _background = Gdx.audio.newMusic(Gdx.files.internal("background.mp3"));
 
-        //начала прогрывания трека
-        //rainMusic.setLooping(true);
-
-        //rainMusic.play();
+        _background.setLooping(true);
+        _background.play();
+        _background.setVolume(0.2f);
 
         threadMove = new Thread(){
             @Override
@@ -458,6 +379,8 @@ public class GameScreen implements Screen {
                         break;
 
                     if(_player.getHp() <= 0){
+                        _background.stop();
+                        _gameOver.play();
                         running = false;
                         dispose();
                         MenuScreen.menu.setScreen(menuScreen);
@@ -472,6 +395,8 @@ public class GameScreen implements Screen {
                     if(_player.getRectangle().overlaps(_door.rect)){
                         _level.nextLevel();
                         if((_level.getCurrentIndex() + 1) > _level.getCountLevel()){
+                            _background.stop();
+                            _gameWin.play();
                             running = false;
                             dispose();
                             MenuScreen.menu.setScreen(menuScreen);
@@ -482,6 +407,7 @@ public class GameScreen implements Screen {
                             }
                             break;
                         }
+                        _nextLevel.play();
                         _platforms = _level.getCurrentPlatforms();
                         _enemies = _level.getCurrentEnemies();
                         _player.setPosition(_level.getCurrentPositionPlayer());
@@ -498,11 +424,15 @@ public class GameScreen implements Screen {
                     if((_chestLow.rect != null) && (_player.getRectangle().overlaps(_chestLow.rect))){
                         _player.setScore(_player.getScore() + 200);
                         _chestLow.rect = null;
+                        _player.setCountBullet(_player.getCountBullet() + 2);
+                        _bonus.play();
                     }
 
                     if((_chestBig.rect != null) && (_player.getRectangle().overlaps(_chestBig.rect))){
                         _player.setScore(_player.getScore() + 1000);
                         _chestBig.rect = null;
+                        _player.setCountBullet(_player.getCountBullet() + 4);
+                        _bonus.play();
                     }
 
                     if(_player.getDirectionMove()){
@@ -513,6 +443,7 @@ public class GameScreen implements Screen {
                                 _player.moveLeft();
                                 _player.moveLeft();
                             }
+                            _monsterAttack.play();
                         }else if(!collisionPlatformsRight(_player.getRectangle())){
                             _player.moveRight();
                         }
@@ -524,21 +455,23 @@ public class GameScreen implements Screen {
                                 _player.moveRight();
                                 _player.moveRight();
                             }
+                            _monsterAttack.play();
                         }else if(!collisionPlatformsLeft(_player.getRectangle())){
                             _player.moveLeft();
                         }
                     }
 
-                    for(int i = 0; i < _enemies.size; i++){
+                    for(int i = 0; (_enemies != null) && (i < _enemies.size); i++){
                         if((_bullet != null) && (_bullet.getActive()) && _bullet.getRectangle().overlaps(_enemies.get(i).getRectangle())){
                             _enemies.get(i).setHp(0);
                             _bullet.dispose();
                             _bullet = null;
                             _player.setScore(_player.getScore() + 100);
+                            _monsterKilled.play();
+                        }else{
+                            _enemies.get(i).nextTexture();
+                            _enemies.get(i).move();
                         }
-
-                        _enemies.get(i).nextTexture();
-                        _enemies.get(i).move();
                     }
 
                     if((_bullet != null) && (_bullet.getActive())){
@@ -810,6 +743,7 @@ public class GameScreen implements Screen {
                                 50, 50), new Texture(Gdx.files.internal("bullet\\bullet.png")), false, 40,
                                 0, AndroidLauncher.WIDTH);
                     }
+                    _bulletAttack.play();
                     _player.setCountBullet(_player.getCountBullet() - 1);
                 }
 
@@ -849,84 +783,6 @@ public class GameScreen implements Screen {
                 _player.setJumpDown(false);
             }
         }
-
-        //обработка движения вверх
-        /*if(_player.getJumpUp() && (collisionPlatforms(_player.getRectangle(), 1, true) < 0))
-            _player.moveUp(10);
-        else{
-            _player.setJumpUp(false);
-        }*/
-
-        //обработка падения вниз
-        /*if((collisionPlatformsDown(_player.getRectangle(), 1) < 0)
-                || ((!_player.getJumpUp()) && (!collisionPlatforms(_player.getRectangle(), false)))){
-            _player.setJumpDown(true);
-        }else{
-            _player.setJumpDown(false);
-        }
-
-        if(_player.getJumpDown() && (!collisionPlatforms(_player.getRectangle(), false)))
-            _player.moveDown(5);
-        else if(collisionPlatforms(_player.getRectangle(), true)){
-            _player.moveDown(5);
-        }
-
-        //изменение метки прыжка (если после прыжка игрок врезается в стенку, то будет падение вниз)
-        if(collisionPlatforms(_player.getRectangle(), false))
-            _player.setJumpDown(false);*/
-
-
-        /*if(posy != 0){
-            player.setDirectionJump(true);
-            player.moveUp(posy * Gdx.graphics.getDeltaTime());
-        }else{
-            player.setDirectionJump(false);
-            player.moveDown(20 * Gdx.graphics.getDeltaTime());
-        }*/
-
-        /*if(man.x < 0) man.x = 0;
-        if(man.y < 0) man.y = 0;
-        if(man.y > 480 - 64) man.y = 480 - 64;
-        if(man.x > 800-64) man.x = 800 - 64;
-        man.x += 1;
-        man.y += posy* Gdx.graphics.getDeltaTime();
-        if(man.y > 10)
-            man.y += (-50) * Gdx.graphics.getDeltaTime();*/
-
-        /*batch.setProjectionMatrix(camera.combined);
-        batch.begin();
-        batch.draw(bucketImage, bucket.x, bucket.y);
-        for(Rectangle raindrop: raindrops){
-            batch.draw(dropImage, raindrop.x, raindrop.y);
-        }
-        batch.end();
-
-        if(Gdx.input.isTouched()){
-            Vector3 touchPos = new Vector3();
-            touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
-            camera.unproject(touchPos);
-            bucket.x = touchPos.x - 64 / 2;
-            bucket.y = touchPos.y;
-        }
-
-        if(bucket.x < 0) bucket.x = 0;
-        if(bucket.y < 0) bucket.y = 0;
-        if(bucket.y > 480 - 64) bucket.y = 480 - 64;
-        if(bucket.x > 800-64) bucket.x = 800 - 64;
-
-        if(TimeUtils.nanoTime() - lastDropTime > 1000000000)
-            spawnRaindrop();
-
-        for(Iterator<Rectangle> iter = raindrops.iterator(); iter.hasNext();){
-            Rectangle raindrop = iter.next();
-            raindrop.y -= 200 * Gdx.graphics.getDeltaTime();
-            if(raindrop.y + 64 < 0)
-                iter.remove();
-            if(raindrop.overlaps(bucket)){
-                dropSound.play();
-                iter.remove();
-            }
-        }*/
     }
 
     @Override
@@ -956,8 +812,16 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose(){
-        //освобождение ресурсов
 
+        //освобождение ресурсов
+        _background.dispose();
+        _gameWin.dispose();
+        _gameOver.dispose();
+        _nextLevel.dispose();
+        _monsterAttack.dispose();
+        _bulletAttack.dispose();
+        _monsterKilled.dispose();
+        _bonus.dispose();
         _stage.dispose();
         _lavaStage.dispose();
         _holdStage.dispose();
